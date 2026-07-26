@@ -200,28 +200,13 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "changmun_pray_count";
-    const LAST_RESET_KEY = "changmun_last_reset";
+    // 전 세계 공유 카운터 (무료 API)
+    const API = "https://countapi.mileshilliard.com/api/v1";
+    const COUNT_KEY = "changmun_pray_total_2026";
+    const RESET_KEY = "changmun_pray_last_reset_2026";
 
-    // 2026년 7월 12일 기준으로 약 2주 전 (현재 2026-07-26)
+    // 기본 시작일: 2026-07-12
     const DEFAULT_START = new Date("2026-07-12T00:00:00").getTime();
-
-    // localStorage가 막혀 있는 환경(샌드박스, file:// 등)을 위한 안전한 저장소
-    const memoryStore = {};
-    function safeGet(key) {
-      try {
-        return localStorage.getItem(key);
-      } catch (e) {
-        return memoryStore[key] || null;
-      }
-    }
-    function safeSet(key, value) {
-      try {
-        localStorage.setItem(key, value);
-      } catch (e) {
-        memoryStore[key] = value;
-      }
-    }
 
     const countEl = document.getElementById("count");
     const dayNumEl = document.getElementById("dayNum");
@@ -242,33 +227,10 @@
       "함께 기도해요"
     ];
 
-    function getCount() {
-      return parseInt(safeGet(STORAGE_KEY) || "0", 10);
-    }
-
-    function setCount(n) {
-      safeSet(STORAGE_KEY, String(n));
-      countEl.textContent = n.toLocaleString("ko-KR");
-    }
-
-    function getLastReset() {
-      const saved = safeGet(LAST_RESET_KEY);
-      return saved ? parseInt(saved, 10) : DEFAULT_START;
-    }
-
-    function updateDays() {
-      const last = getLastReset();
-      const now = Date.now();
-      const days = Math.floor((now - last) / (1000 * 60 * 60 * 24));
-      dayNumEl.textContent = Math.max(0, days);
-    }
-
     function showMessage(text) {
       messageEl.textContent = text;
       messageEl.classList.add("show");
-      setTimeout(() => {
-        messageEl.classList.remove("show");
-      }, 1800);
+      setTimeout(() => messageEl.classList.remove("show"), 1800);
     }
 
     function bumpCount() {
@@ -276,30 +238,95 @@
       setTimeout(() => countEl.classList.remove("bump"), 150);
     }
 
-    // 초기화
-    setCount(getCount());
-    updateDays();
+    function displayCount(n) {
+      countEl.textContent = Number(n).toLocaleString("ko-KR");
+    }
 
-    prayBtn.addEventListener("click", () => {
-      const next = getCount() + 1;
-      setCount(next);
-      bumpCount();
-      const msg = messages[Math.floor(Math.random() * messages.length)];
-      showMessage(msg);
-    });
-
-    resetBtn.addEventListener("click", () => {
-      if (confirm("영상이 올라왔나요?\n기도 횟수와 날짜를 초기화합니다.")) {
-        setCount(0);
-        safeSet(LAST_RESET_KEY, String(Date.now()));
-        updateDays();
-        showMessage("초기화 완료! 창문아 고마워 ✨");
+    // 현재 기도 횟수 불러오기
+    async function loadCount() {
+      try {
+        const res = await fetch(`${API}/get/${COUNT_KEY}`);
+        if (res.ok) {
+          const data = await res.json();
+          displayCount(data.value || 0);
+        } else {
+          displayCount(0);
+        }
+      } catch (e) {
+        displayCount(0);
       }
-    });
+    }
 
-    // 매일 날짜 갱신 (페이지 열어둘 경우)
-    setInterval(updateDays, 60 * 60 * 1000);
+    // 마지막 리셋 시간 불러와서 날짜 계산
+    async function loadDays() {
+      try {
+        const res = await fetch(`${API}/get/${RESET_KEY}`);
+        let last = DEFAULT_START;
+        if (res.ok) {
+          const data = await res.json();
+          const val = parseInt(data.value, 10);
+          if (!isNaN(val) && val > 0) last = val;
+        }
+        const days = Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
+        dayNumEl.textContent = Math.max(0, days);
+      } catch (e) {
+        const days = Math.floor((Date.now() - DEFAULT_START) / (1000 * 60 * 60 * 24));
+        dayNumEl.textContent = Math.max(0, days);
+      }
+    }
+
+    // 기도하기 (+1)
+    async function pray() {
+      prayBtn.disabled = true;
+      try {
+        const res = await fetch(`${API}/hit/${COUNT_KEY}`);
+        if (res.ok) {
+          const data = await res.json();
+          displayCount(data.value);
+          bumpCount();
+          const msg = messages[Math.floor(Math.random() * messages.length)];
+          showMessage(msg);
+        } else {
+          showMessage("잠시 후 다시 시도해주세요");
+        }
+      } catch (e) {
+        showMessage("연결 오류… 다시 눌러봐");
+      }
+      prayBtn.disabled = false;
+    }
+
+    // 초기화 (영상 올라옴)
+    async function resetAll() {
+      if (!confirm("영상이 올라왔나요?\n전 세계 기도 횟수와 날짜를 초기화합니다.")) return;
+
+      resetBtn.disabled = true;
+      try {
+        // 기도 횟수 0으로
+        await fetch(`${API}/set/${COUNT_KEY}?value=0`);
+        // 리셋 시간 저장 (밀리초 타임스탬프)
+        await fetch(`${API}/set/${RESET_KEY}?value=${Date.now()}`);
+
+        displayCount(0);
+        dayNumEl.textContent = "0";
+        showMessage("초기화 완료! 창문아 고마워 ✨");
+      } catch (e) {
+        showMessage("초기화 실패… 다시 시도해봐");
+      }
+      resetBtn.disabled = false;
+    }
+
+    // 시작
+    loadCount();
+    loadDays();
+
+    prayBtn.addEventListener("click", pray);
+    resetBtn.addEventListener("click", resetAll);
+
+    // 30초마다 최신 횟수 갱신 (다른 사람이 기도한 것 반영)
+    setInterval(loadCount, 30000);
+    setInterval(loadDays, 60 * 60 * 1000);
   </script>
+
 
 </body>
 </html>
