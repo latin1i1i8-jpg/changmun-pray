@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>창문아 영상 올려줘 🙏</title>
+  <meta name="description" content="창문 유튜버 영상이 올라올 때까지 함께 기도하는 사이트" />
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a22;
+      --accent: #7c5cff;
+      --accent-hover: #9578ff;
+      --text: #f0f0f5;
+      --muted: #9a9aad;
+      --success: #3dd68c;
+      --danger: #ff6b6b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(124, 92, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(61, 214, 140, 0.08) 0%, transparent 50%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    .emoji {
+      font-size: 64px;
+      margin-bottom: 12px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 28px 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .count-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+
+    .count {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 4px;
+      transition: transform 0.15s ease;
+    }
+
+    .count.bump {
+      transform: scale(1.12);
+    }
+
+    .days {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .days strong {
+      color: var(--text);
+    }
+
+    .pray-btn {
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-bottom: 12px;
+    }
+
+    .pray-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .pray-btn:active {
+      transform: scale(0.97);
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .reset-btn:hover {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(61, 214, 140, 0.08);
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      min-height: 1.4em;
+      transition: opacity 0.3s;
+    }
+
+    .message.show {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 32px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+
+    footer a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="emoji">🙏</div>
+    <h1>창문아 영상 올려줘</h1>
+    <p class="subtitle">
+      영상이 올라올 때까지 함께 기도해요.<br />
+      버튼을 누를 때마다 기도가 쌓입니다.
+    </p>
+
+    <div class="card">
+      <div class="count-label">누적 기도 횟수</div>
+      <div class="count" id="count">0</div>
+      <div class="days" id="days">마지막 영상 이후 <strong id="dayNum">14</strong>일째</div>
+
+      <button class="pray-btn" id="prayBtn">🙏 기도하기</button>
+      <button class="reset-btn" id="resetBtn">✨ 영상 올라옴! 초기화</button>
+
+      <div class="message" id="message"></div>
+    </div>
+
+    <footer>
+      창문 유튜버 팬을 위한 작은 기도 공간 · GitHub Pages
+    </footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "changmun_pray_count";
+    const LAST_RESET_KEY = "changmun_last_reset";
+
+    // 2026년 7월 12일 기준으로 약 2주 전 (현재 2026-07-26)
+    const DEFAULT_START = new Date("2026-07-12T00:00:00").getTime();
+
+    // localStorage가 막혀 있는 환경(샌드박스, file:// 등)을 위한 안전한 저장소
+    const memoryStore = {};
+    function safeGet(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        return memoryStore[key] || null;
+      }
+    }
+    function safeSet(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (e) {
+        memoryStore[key] = value;
+      }
+    }
+
+    const countEl = document.getElementById("count");
+    const dayNumEl = document.getElementById("dayNum");
+    const messageEl = document.getElementById("message");
+    const prayBtn = document.getElementById("prayBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const messages = [
+      "창문아 영상 기다려요…",
+      "오늘도 기도합니다 🙏",
+      "창문 영상 보고 싶어요",
+      "조금만 더 기다려볼까요",
+      "창문아 보고 싶어",
+      "기도가 쌓이고 있어요",
+      "창문 유튜브 사랑해요",
+      "영상 올라오면 바로 달려갈게요",
+      "창문아 화이팅!",
+      "함께 기도해요"
+    ];
+
+    function getCount() {
+      return parseInt(safeGet(STORAGE_KEY) || "0", 10);
+    }
+
+    function setCount(n) {
+      safeSet(STORAGE_KEY, String(n));
+      countEl.textContent = n.toLocaleString("ko-KR");
+    }
+
+    function getLastReset() {
+      const saved = safeGet(LAST_RESET_KEY);
+      return saved ? parseInt(saved, 10) : DEFAULT_START;
+    }
+
+    function updateDays() {
+      const last = getLastReset();
+      const now = Date.now();
+      const days = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+      dayNumEl.textContent = Math.max(0, days);
+    }
+
+    function showMessage(text) {
+      messageEl.textContent = text;
+      messageEl.classList.add("show");
+      setTimeout(() => {
+        messageEl.classList.remove("show");
+      }, 1800);
+    }
+
+    function bumpCount() {
+      countEl.classList.add("bump");
+      setTimeout(() => countEl.classList.remove("bump"), 150);
+    }
+
+    // 초기화
+    setCount(getCount());
+    updateDays();
+
+    prayBtn.addEventListener("click", () => {
+      const next = getCount() + 1;
+      setCount(next);
+      bumpCount();
+      const msg = messages[Math.floor(Math.random() * messages.length)];
+      showMessage(msg);
+    });
+
+    resetBtn.addEventListener("click", () => {
+      if (confirm("영상이 올라왔나요?\n기도 횟수와 날짜를 초기화합니다.")) {
+        setCount(0);
+        safeSet(LAST_RESET_KEY, String(Date.now()));
+        updateDays();
+        showMessage("초기화 완료! 창문아 고마워 ✨");
+      }
+    });
+
+    // 매일 날짜 갱신 (페이지 열어둘 경우)
+    setInterval(updateDays, 60 * 60 * 1000);
+  </script>
+
+</body>
+</html>
